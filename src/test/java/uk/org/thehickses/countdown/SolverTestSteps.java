@@ -1,14 +1,13 @@
 package uk.org.thehickses.countdown;
 
+import static org.assertj.core.api.Assertions.*;
+
 import java.util.stream.Stream;
 
 import io.cucumber.java.ParameterType;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import uk.org.thehickses.countdown.Solver;
 import uk.org.thehickses.countdown.Solver.Expression;
-
-import static org.assertj.core.api.Assertions.*;
 
 public class SolverTestSteps
 {
