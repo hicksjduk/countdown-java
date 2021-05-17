@@ -1,11 +1,12 @@
-package uk.org.thehickses.countdown2;
+package uk.org.thehickses.countdown;
 
 import java.util.stream.Stream;
 
 import io.cucumber.java.ParameterType;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import uk.org.thehickses.countdown2.Solver.Expression;
+import uk.org.thehickses.countdown.Solver;
+import uk.org.thehickses.countdown.Solver.Expression;
 
 import static org.assertj.core.api.Assertions.*;
 
