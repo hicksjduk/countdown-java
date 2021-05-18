@@ -104,7 +104,7 @@ public class Solver
         Comparator<Expression> comp = Comparator
                 .nullsLast(Comparator
                         .comparingInt((Expression e) -> e.differenceFrom(target))
-                        .thenComparing(e -> e.numberCount));
+                        .thenComparing(e -> e.numbers.length));
         return (expr1, expr2) -> comp.compare(expr1, expr2) <= 0 ? expr1 : expr2;
     }
 
@@ -118,14 +118,14 @@ public class Solver
     public static class Expression
     {
         public final int value;
-        public final int numberCount;
+        public final int[] numbers;
         private final int priority;
         private final Supplier<String> toString;
 
         public Expression(int number)
         {
             value = number;
-            numberCount = 1;
+            numbers = IntStream.of(number).toArray();
             priority = Priority.ATOMIC;
             toString = () -> String.format("%d", number);
         }
@@ -133,7 +133,9 @@ public class Solver
         public Expression(Expression leftOperand, Operator operator, Expression rightOperand)
         {
             value = operator.evaluate(leftOperand, rightOperand);
-            numberCount = leftOperand.numberCount + rightOperand.numberCount;
+            numbers = IntStream
+                    .concat(IntStream.of(leftOperand.numbers), IntStream.of(rightOperand.numbers))
+                    .toArray();
             priority = operator.priority;
             toString = () -> Stream
                     .of(parenthesisedIfNecessary(leftOperand,
@@ -165,7 +167,9 @@ public class Solver
         {
             final int prime = 31;
             int result = 1;
-            result = prime * result + numberCount;
+            result = prime * result + Arrays.hashCode(numbers);
+            result = prime * result + priority;
+            result = prime * result + ((toString == null) ? 0 : toString.hashCode());
             result = prime * result + value;
             return result;
         }
@@ -180,7 +184,16 @@ public class Solver
             if (getClass() != obj.getClass())
                 return false;
             Expression other = (Expression) obj;
-            if (numberCount != other.numberCount)
+            if (!Arrays.equals(numbers, other.numbers))
+                return false;
+            if (priority != other.priority)
+                return false;
+            if (toString == null)
+            {
+                if (other.toString != null)
+                    return false;
+            }
+            else if (!toString.equals(other.toString))
                 return false;
             if (value != other.value)
                 return false;
