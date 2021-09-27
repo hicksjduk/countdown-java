@@ -2,8 +2,12 @@ package uk.org.thehickses.countdown;
 
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -22,6 +26,94 @@ import org.slf4j.LoggerFactory;
 public class Solver
 {
     private static final Logger LOG = LoggerFactory.getLogger(Solver.class);
+
+    public static void main(String[] args)
+    {
+        try
+        {
+            int[] numArgs = validate(args);
+            if (numArgs.length == 1)
+            {
+                Random rand = new Random();
+                int target = rand.nextInt(900) + 100;
+                int[] numbers = selectRandomNumbers(rand, numArgs[0]);
+                new Solver(target, numbers).solve();
+            }
+            else
+            {
+                new Solver(numArgs[0], ArrayUtils.subarray(numArgs, 1, numArgs.length)).solve();
+            }
+        }
+        catch (ValidationException ex)
+        {
+            LOG.error(ex.getLocalizedMessage());
+        }
+    }
+
+    @SuppressWarnings("serial")
+    private static class ValidationException extends RuntimeException
+    {
+        public ValidationException(String message)
+        {
+            super(message);
+        }
+    }
+
+    private static int[] validate(String[] args) throws ValidationException
+    {
+        if (Stream.of(args).anyMatch(a -> !a.matches("\\d+")))
+            throw new ValidationException("All arguments must be numbers");
+        if (args.length != 1 && args.length != 7)
+            throw new ValidationException(
+                    "Must specify either one number (the number of large numbers to select) "
+                            + "or seven numbers, of which the first is the target");
+        int[] numArgs = Stream.of(args).mapToInt(Integer::parseInt).toArray();
+        if (numArgs.length == 1)
+        {
+            if (numArgs[0] < 0 || numArgs[0] > 4)
+                throw new ValidationException(
+                        "Number of large numbers must be in the range 0 to 4 inclusive");
+        }
+        else
+        {
+            int target = numArgs[0];
+            int[] numbers = ArrayUtils.subarray(numArgs, 1, numArgs.length);
+            if (target < 100 || target > 999)
+                throw new ValidationException(
+                        "Target number must be in the range 100 to 999 inclusive");
+            Map<Integer, Integer> occurrences = new HashMap<>();
+            IntStream.of(numbers).forEach(n ->
+                {
+                    if (n < 1 || n > 100 || (n > 10 && n % 25 != 0))
+                        throw new ValidationException(
+                                "Source numbers must be in the range 1 to 10, "
+                                        + "or 25, 50, 75 or 100");
+                    int occ = occurrences.getOrDefault(n, 0) + 1;
+                    if (n <= 10 && occ > 2)
+                        throw new ValidationException(
+                                "Small source numbers (<=10) cannot appear more than twice");
+                    if (n > 10 && occ > 1)
+                        throw new ValidationException(
+                                "Large source numbers (>10) cannot appear more than once");
+                    occurrences.put(n, occ);
+                });
+        }
+        return numArgs;
+    }
+
+    private static int[] selectRandomNumbers(Random rand, int largeCount)
+    {
+        List<Integer> large = Stream.of(25, 50, 75, 100).collect(Collectors.toList());
+        List<Integer> small = Stream
+                .of(1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10)
+                .collect(Collectors.toList());
+        return IntStream.range(0, 6).map(i ->
+            {
+                List<Integer> numbers = i < largeCount ? large : small;
+                int index = rand.nextInt(numbers.size());
+                return numbers.remove(index);
+            }).toArray();
+    }
 
     private final int target;
     private final int[] numbers;
@@ -54,10 +146,11 @@ public class Solver
         Expression[] items = exprs.toArray(Expression[]::new);
         if (items.length == 1)
             return Stream.generate(() -> items).limit(1);
+        Predicate<Expression> used = usedChecker();
         return IntStream
                 .range(0, items.length)
+                .filter(i -> !used.test(items[i]))
                 .boxed()
-                .filter(usedChecker((Integer i) -> items[i].value).negate())
                 .flatMap(i ->
                     {
                         Stream<Expression> others = IntStream
@@ -71,10 +164,10 @@ public class Solver
                     });
     }
 
-    private <V, I> Predicate<V> usedChecker(Function<V, I> idGenerator)
+    private Predicate<Expression> usedChecker()
     {
-        Set<I> usedValues = new HashSet<>();
-        return value -> !usedValues.add(idGenerator.apply(value));
+        Set<Integer> usedValues = new HashSet<>();
+        return value -> !usedValues.add(value.value);
     }
 
     private Stream<Expression> expressions(Expression[] permutation)
@@ -96,7 +189,7 @@ public class Solver
                                         .map(c -> c.apply(rightOperand))
                                         .filter(Objects::nonNull));
                     });
-            }).filter(usedChecker((Expression expr) -> expr.value).negate());
+            }).filter(usedChecker().negate());
     }
 
     private BinaryOperator<Expression> evaluator(int target)
@@ -104,7 +197,7 @@ public class Solver
         Comparator<Expression> comp = Comparator
                 .nullsLast(Comparator
                         .comparingInt((Expression e) -> e.differenceFrom(target))
-                        .thenComparing(e -> e.numbers.length));
+                        .thenComparingInt(e -> e.numbers.length));
         return (expr1, expr2) -> comp.compare(expr1, expr2) <= 0 ? expr1 : expr2;
     }
 
