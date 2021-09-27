@@ -6,11 +6,11 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>uk.org.thehickses</groupId>
-	<artifactId>countdown2</artifactId>
+	<artifactId>countdown</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 
-	<name>countdown2</name>
-	<description>A simple countdown2.</description>
+	<name>countdown</name>
+	<description>A solver for the Countdown numbers game.</description>
 	<!-- FIXME change it to the project's website -->
 	<url>http://www.example.com</url>
 
@@ -67,13 +67,6 @@
 			<version>6.10.3</version>
 			<scope>test</scope>
 		</dependency>
-
-		<dependency>
-			<groupId>uk.org.thehickses</groupId>
-			<artifactId>testing</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-			<scope>test</scope>
-		</dependency>
 		<dependency>
 			<groupId>org.assertj</groupId>
 			<artifactId>assertj-core</artifactId>
@@ -84,7 +77,6 @@
 			<groupId>ch.qos.logback</groupId>
 			<artifactId>logback-classic</artifactId>
 			<version>1.2.3</version>
-			<scope>test</scope>
 		</dependency>
 	</dependencies>
 
@@ -92,6 +84,14 @@
 		<pluginManagement><!-- lock down plugins versions to avoid using Maven 
 				defaults (may be moved to parent pom) -->
 			<plugins>
+				<plugin>
+					<groupId>org.codehaus.mojo</groupId>
+					<artifactId>exec-maven-plugin</artifactId>
+					<version>1.6.0</version>
+					<configuration>
+						<mainClass>uk.org.thehickses.countdown.Solver</mainClass>
+					</configuration>
+				</plugin>
 				<plugin>
 					<artifactId>maven-clean-plugin</artifactId>
 					<version>3.1.0</version>
