@@ -15,6 +15,7 @@ import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -31,18 +32,8 @@ public class Solver
     {
         try
         {
-            int[] numArgs = validate(args);
-            if (numArgs.length == 1)
-            {
-                Random rand = new Random();
-                int target = rand.nextInt(900) + 100;
-                int[] numbers = selectRandomNumbers(rand, numArgs[0]);
-                new Solver(target, numbers).solve();
-            }
-            else
-            {
-                new Solver(numArgs[0], ArrayUtils.subarray(numArgs, 1, numArgs.length)).solve();
-            }
+            Solver solver = instance(args);
+            solver.solve();
         }
         catch (ValidationException ex)
         {
@@ -59,60 +50,72 @@ public class Solver
         }
     }
 
-    private static int[] validate(String[] args) throws ValidationException
+    private static Solver instance(String[] args) throws ValidationException
     {
-        if (Stream.of(args).anyMatch(a -> !a.matches("\\d+")))
+        Solver answer;
+        if (Stream.of(args).anyMatch(Pattern.compile("\\d+").asPredicate().negate()))
             throw new ValidationException("All arguments must be numbers");
-        if (args.length != 1 && args.length != 7)
-            throw new ValidationException(
-                    "Must specify either one number (the number of large numbers to select) "
-                            + "or seven numbers, of which the first is the target");
-        int[] numArgs = Stream.of(args).mapToInt(Integer::parseInt).toArray();
-        if (numArgs.length == 1)
-        {
-            if (numArgs[0] < 0 || numArgs[0] > 4)
-                throw new ValidationException(
-                        "Number of large numbers must be in the range 0 to 4 inclusive");
-        }
+        int[] nums = Stream.of(args).mapToInt(Integer::parseInt).toArray();
+        if (nums.length == 1)
+            answer = instance(nums[0]);
         else
-        {
-            int target = numArgs[0];
-            int[] numbers = ArrayUtils.subarray(numArgs, 1, numArgs.length);
-            if (target < 100 || target > 999)
-                throw new ValidationException(
-                        "Target number must be in the range 100 to 999 inclusive");
-            Map<Integer, Integer> occurrences = new HashMap<>();
-            IntStream.of(numbers).forEach(n ->
-                {
-                    if (n < 1 || n > 100 || (n > 10 && n % 25 != 0))
-                        throw new ValidationException(
-                                "Source numbers must be in the range 1 to 10, "
-                                        + "or 25, 50, 75 or 100");
-                    int occ = occurrences.getOrDefault(n, 0) + 1;
-                    if (n <= 10 && occ > 2)
-                        throw new ValidationException(
-                                "Small source numbers (<=10) cannot appear more than twice");
-                    if (n > 10 && occ > 1)
-                        throw new ValidationException(
-                                "Large source numbers (>10) cannot appear more than once");
-                    occurrences.put(n, occ);
-                });
-        }
-        return numArgs;
+            answer = instance(nums);
+        return answer;
+    }
+
+    private static Solver instance(int bigNumbers) throws ValidationException
+    {
+        if (bigNumbers > 4)
+            throw new ValidationException(
+                    "Number of large numbers must be in the range 0 to 4 inclusive");
+        Random rand = new Random();
+        int target = rand.nextInt(900) + 100;
+        int[] numbers = selectRandomNumbers(rand, bigNumbers);
+        return new Solver(target, numbers);
+    }
+
+    private static Solver instance(int[] nums) throws ValidationException
+    {
+        int target = nums[0];
+        if (target < 100 || target > 999)
+            throw new ValidationException(
+                    "Target number must be in the range 100 to 999 inclusive");
+        int[] numbers = ArrayUtils.subarray(nums, 1, nums.length);
+        Map<Integer, Integer> occurrences = new HashMap<>();
+        IntStream.of(numbers).forEach(n ->
+            {
+                if (n < 1 || n > 100 || (n > 10 && n % 25 != 0))
+                    throw new ValidationException("Source numbers must be in the range 1 to 10, "
+                            + "or 25, 50, 75 or 100");
+                int occ = occurrences.getOrDefault(n, 0) + 1;
+                if (n <= 10 && occ > 2)
+                    throw new ValidationException(
+                            "Small source numbers (<=10) cannot appear more than twice");
+                if (n > 10 && occ > 1)
+                    throw new ValidationException(
+                            "Large source numbers (>10) cannot appear more than once");
+                occurrences.put(n, occ);
+            });
+        return new Solver(target, numbers);
     }
 
     private static int[] selectRandomNumbers(Random rand, int largeCount)
     {
-        List<Integer> large = Stream.of(25, 50, 75, 100).collect(Collectors.toList());
-        List<Integer> small = Stream
-                .of(1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10)
+        List<Integer> large = IntStream
+                .rangeClosed(1, 4)
+                .map(i -> i * 25)
+                .boxed()
                 .collect(Collectors.toList());
-        return IntStream.range(0, 6).map(i ->
-            {
-                List<Integer> numbers = i < largeCount ? large : small;
-                int index = rand.nextInt(numbers.size());
-                return numbers.remove(index);
-            }).toArray();
+        List<Integer> small = IntStream
+                .rangeClosed(1, 10)
+                .boxed()
+                .flatMap(i -> Stream.of(i, i))
+                .collect(Collectors.toList());
+        return IntStream
+                .range(0, 6)
+                .mapToObj(i -> i < largeCount ? large : small)
+                .mapToInt(numbers -> numbers.remove(rand.nextInt(numbers.size())))
+                .toArray();
     }
 
     private final int target;
