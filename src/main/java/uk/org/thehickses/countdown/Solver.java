@@ -167,16 +167,17 @@ public class Solver
         return IntStream.range(0, items.length)
                 .filter(i -> !used.test(items[i]))
                 .boxed()
-                .flatMap(i ->
-                    {
-                        Stream<Expression> others = IntStream.range(0, items.length)
-                                .filter(j -> j != i)
-                                .mapToObj(j -> items[j]);
-                        Stream<Expression[]> suffixes = Stream
-                                .concat(Stream.generate(() -> new Expression[0])
-                                        .limit(1), permute(others));
-                        return suffixes.map(s -> ArrayUtils.addFirst(s, items[i]));
-                    });
+                .flatMap(i -> permuteAt(i, items));
+    }
+
+    private Stream<Expression[]> permuteAt(int i, Expression[] items)
+    {
+        Stream<Expression> others = IntStream.range(0, items.length)
+                .filter(j -> j != i)
+                .mapToObj(j -> items[j]);
+        Stream<Expression[]> suffixes = Stream.concat(Stream.generate(() -> new Expression[0])
+                .limit(1), permute(others));
+        return suffixes.map(s -> ArrayUtils.addFirst(s, items[i]));
     }
 
     private Predicate<Expression> usedChecker()
@@ -191,22 +192,25 @@ public class Solver
             return Stream.of(permutation);
         return IntStream.range(1, permutation.length)
                 .boxed()
-                .flatMap(i ->
-                    {
-                        Stream<Expression> leftOperands = expressions(
-                                ArrayUtils.subarray(permutation, 0, i));
-                        return leftOperands.flatMap(leftOperand ->
-                            {
-                                Combiner[] combiners = combinersUsing(leftOperand)
-                                        .toArray(Combiner[]::new);
-                                Stream<Expression> rightOperands = expressions(
-                                        ArrayUtils.subarray(permutation, i, permutation.length));
-                                return rightOperands.flatMap(rightOperand -> Stream.of(combiners)
-                                        .map(c -> c.apply(rightOperand))
-                                        .filter(Objects::nonNull));
-                            });
-                    })
+                .flatMap(i -> expressionsAt(i, permutation))
                 .filter(usedChecker().negate());
+    }
+
+    private Stream<Expression> expressionsAt(int i, Expression[] permutation)
+    {
+        Stream<Expression> leftOperands = expressions(ArrayUtils.subarray(permutation, 0, i));
+        Expression[] rightOperands = expressions(
+                ArrayUtils.subarray(permutation, i, permutation.length)).toArray(Expression[]::new);
+        return leftOperands.flatMap(
+                leftOperand -> expressionsUsing(leftOperand).apply(Stream.of(rightOperands)));
+    }
+
+    private UnaryOperator<Stream<Expression>> expressionsUsing(Expression leftOperand)
+    {
+        Combiner[] combiners = combinersUsing(leftOperand).toArray(Combiner[]::new);
+        return rightOperands -> rightOperands.flatMap(rightOperand -> Stream.of(combiners)
+                .map(c -> c.apply(rightOperand))
+                .filter(Objects::nonNull));
     }
 
     private BinaryOperator<Expression> evaluator(int target)
