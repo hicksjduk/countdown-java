@@ -2,10 +2,9 @@ package uk.org.thehickses.countdown;
 
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
@@ -15,7 +14,6 @@ import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -32,30 +30,29 @@ public class Solver
     {
         try
         {
+            LOG
+                    .info("Invoked with argument(s): {}",
+                            Stream.of(args).collect(Collectors.joining(" ")));
             Solver solver = instance(args);
             solver.solve();
         }
-        catch (ValidationException ex)
+        catch (Throwable ex)
         {
             LOG.error(ex.getLocalizedMessage());
+            System.exit(1);
         }
     }
 
-    @SuppressWarnings("serial")
-    private static class ValidationException extends RuntimeException
-    {
-        public ValidationException(String message)
-        {
-            super(message);
-        }
-    }
-
-    private static Solver instance(String[] args) throws ValidationException
+    private static Solver instance(String[] args)
     {
         Solver answer;
-        if (Stream.of(args).anyMatch(Pattern.compile("\\d+").asPredicate().negate()))
-            throw new ValidationException("All arguments must be numbers");
-        int[] nums = Stream.of(args).mapToInt(Integer::parseInt).toArray();
+        if (args.length == 0)
+            throw new RuntimeException("At least one argument must be specified");
+        int[] nums = Stream
+                .of(args)
+                .peek(Solver::validateArg)
+                .mapToInt(Integer::parseInt)
+                .toArray();
         if (nums.length == 1)
             answer = instance(nums[0]);
         else
@@ -63,40 +60,63 @@ public class Solver
         return answer;
     }
 
-    private static Solver instance(int bigNumbers) throws ValidationException
+    private static void validateArg(String arg)
+    {
+        if (!arg.matches("\\d+"))
+            throw new RuntimeException(String
+                    .format("Invalid argument %s: all arguments must be non-negative integers",
+                            arg));
+    }
+
+    private static Solver instance(int bigNumbers)
     {
         if (bigNumbers > 4)
-            throw new ValidationException(
+            throw new RuntimeException(
                     "Number of large numbers must be in the range 0 to 4 inclusive");
+        LOG.info("Randomly selecting target number, and 6 source numbers of which {} are large", bigNumbers);
         Random rand = new Random();
         int target = rand.nextInt(900) + 100;
         int[] numbers = selectRandomNumbers(rand, bigNumbers);
         return new Solver(target, numbers);
     }
 
-    private static Solver instance(int[] nums) throws ValidationException
+    private static Solver instance(int[] nums)
     {
         int target = nums[0];
         if (target < 100 || target > 999)
-            throw new ValidationException(
-                    "Target number must be in the range 100 to 999 inclusive");
+            throw new RuntimeException("Target number must be in the range 100 to 999 inclusive");
         int[] numbers = ArrayUtils.subarray(nums, 1, nums.length);
-        Map<Integer, Integer> occurrences = new HashMap<>();
-        IntStream.of(numbers).forEach(n ->
-            {
-                if (n < 1 || n > 100 || (n > 10 && n % 25 != 0))
-                    throw new ValidationException("Source numbers must be in the range 1 to 10, "
-                            + "or 25, 50, 75 or 100");
-                int occ = occurrences.getOrDefault(n, 0) + 1;
-                if (n <= 10 && occ > 2)
-                    throw new ValidationException(
-                            "Small source numbers (<=10) cannot appear more than twice");
-                if (n > 10 && occ > 1)
-                    throw new ValidationException(
-                            "Large source numbers (>10) cannot appear more than once");
-                occurrences.put(n, occ);
-            });
+        IntStream
+                .of(numbers)
+                .peek(Solver::validateValue)
+                .boxed()
+                .collect(Collectors
+                        .groupingBy(Function.identity(),
+                                Collectors.reducing(0, e -> 1, Integer::sum)))
+                .entrySet()
+                .stream()
+                .forEach(Solver::validateCount);
         return new Solver(target, numbers);
+    }
+
+    private static void validateValue(int n)
+    {
+        if (n < 1 || n > 100 || (n > 10 && n % 25 != 0))
+            throw new RuntimeException(String
+                    .format("Invalid source number %d: must be in the range 1 to 10 inclusive, "
+                            + "or 25, 50, 75 or 100", n));
+    }
+
+    private static void validateCount(Entry<Integer, Integer> e)
+    {
+        int n = e.getKey();
+        int occ = e.getValue();
+        if (n <= 10 && occ > 2)
+            throw new RuntimeException(
+                    String.format("Small source number %d cannot appear more than twice", n));
+        if (n > 10 && occ > 1)
+            throw new RuntimeException(
+                    String.format("Large source number %d cannot appear more than once", n));
     }
 
     private static int[] selectRandomNumbers(Random rand, int largeCount)
