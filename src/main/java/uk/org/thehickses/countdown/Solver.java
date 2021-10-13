@@ -30,8 +30,8 @@ public class Solver
     {
         try
         {
-            LOG.info("Invoked with argument(s): {}",
-                    Stream.of(args).collect(Collectors.joining(" ")));
+            LOG.info("Invoked with argument(s): {}", Stream.of(args)
+                    .collect(Collectors.joining(" ")));
             Solver solver = instance(args);
             solver.solve();
         }
@@ -47,7 +47,9 @@ public class Solver
         Solver answer;
         if (args.length == 0)
             throw new RuntimeException("At least one argument must be specified");
-        int[] nums = Stream.of(args).peek(Solver::validateArg).mapToInt(Integer::parseInt)
+        int[] nums = Stream.of(args)
+                .peek(Solver::validateArg)
+                .mapToInt(Integer::parseInt)
                 .toArray();
         if (nums.length == 1)
             answer = instance(nums[0]);
@@ -82,10 +84,14 @@ public class Solver
         if (target < 100 || target > 999)
             throw new RuntimeException("Target number must be in the range 100 to 999 inclusive");
         int[] numbers = ArrayUtils.subarray(nums, 1, nums.length);
-        IntStream.of(numbers).peek(Solver::validateValue).boxed()
+        IntStream.of(numbers)
+                .peek(Solver::validateValue)
+                .boxed()
                 .collect(Collectors.groupingBy(Function.identity(),
                         Collectors.reducing(0, e -> 1, Integer::sum)))
-                .entrySet().stream().forEach(Solver::validateCount);
+                .entrySet()
+                .stream()
+                .forEach(Solver::validateCount);
         return new Solver(target, numbers);
     }
 
@@ -111,12 +117,18 @@ public class Solver
 
     private static int[] selectRandomNumbers(Random rand, int largeCount)
     {
-        List<Integer> large = IntStream.rangeClosed(1, 4).map(i -> i * 25).boxed()
+        List<Integer> large = IntStream.rangeClosed(1, 4)
+                .map(i -> i * 25)
+                .boxed()
                 .collect(Collectors.toList());
-        List<Integer> small = IntStream.rangeClosed(1, 10).boxed().flatMap(i -> Stream.of(i, i))
+        List<Integer> small = IntStream.rangeClosed(1, 10)
+                .boxed()
+                .flatMap(i -> Stream.of(i, i))
                 .collect(Collectors.toList());
-        return IntStream.range(0, 6).mapToObj(i -> i < largeCount ? large : small)
-                .mapToInt(numbers -> numbers.remove(rand.nextInt(numbers.size()))).toArray();
+        return IntStream.range(0, 6)
+                .mapToObj(i -> i < largeCount ? large : small)
+                .mapToInt(numbers -> numbers.remove(rand.nextInt(numbers.size())))
+                .toArray();
     }
 
     private final int target;
@@ -132,9 +144,11 @@ public class Solver
     {
         LOG.info("-------------------------------------------------------------------");
         LOG.info("Target: {}, numbers: {}", target, Arrays.toString(numbers));
-        Expression answer = permute(IntStream.of(numbers).mapToObj(Expression::new)).parallel()
-                .flatMap(this::expressions).filter(e -> e.differenceFrom(target) <= 10)
-                .reduce(null, evaluator(target));
+        Expression answer = permute(IntStream.of(numbers)
+                .mapToObj(Expression::new)).parallel()
+                        .flatMap(this::expressions)
+                        .filter(e -> e.differenceFrom(target) <= 10)
+                        .reduce(null, evaluator(target));
         if (answer == null)
             LOG.info("No solution found");
         else
@@ -147,15 +161,20 @@ public class Solver
     {
         Expression[] items = exprs.toArray(Expression[]::new);
         if (items.length == 1)
-            return Stream.generate(() -> items).limit(1);
+            return Stream.generate(() -> items)
+                    .limit(1);
         Predicate<Expression> used = usedChecker();
-        return IntStream.range(0, items.length).filter(i -> !used.test(items[i])).boxed()
+        return IntStream.range(0, items.length)
+                .filter(i -> !used.test(items[i]))
+                .boxed()
                 .flatMap(i ->
                     {
                         Stream<Expression> others = IntStream.range(0, items.length)
-                                .filter(j -> j != i).mapToObj(j -> items[j]);
-                        Stream<Expression[]> suffixes = Stream.concat(
-                                Stream.generate(() -> new Expression[0]).limit(1), permute(others));
+                                .filter(j -> j != i)
+                                .mapToObj(j -> items[j]);
+                        Stream<Expression[]> suffixes = Stream
+                                .concat(Stream.generate(() -> new Expression[0])
+                                        .limit(1), permute(others));
                         return suffixes.map(s -> ArrayUtils.addFirst(s, items[i]));
                     });
     }
@@ -170,19 +189,24 @@ public class Solver
     {
         if (permutation.length == 1)
             return Stream.of(permutation);
-        return IntStream.range(1, permutation.length).boxed().flatMap(i ->
-            {
-                Stream<Expression> leftOperands = expressions(
-                        ArrayUtils.subarray(permutation, 0, i));
-                return leftOperands.flatMap(leftOperand ->
+        return IntStream.range(1, permutation.length)
+                .boxed()
+                .flatMap(i ->
                     {
-                        Combiner[] combiners = combiners(leftOperand).toArray(Combiner[]::new);
-                        Stream<Expression> rightOperands = expressions(
-                                ArrayUtils.subarray(permutation, i, permutation.length));
-                        return rightOperands.flatMap(rightOperand -> Stream.of(combiners)
-                                .map(c -> c.apply(rightOperand)).filter(Objects::nonNull));
-                    });
-            }).filter(usedChecker().negate());
+                        Stream<Expression> leftOperands = expressions(
+                                ArrayUtils.subarray(permutation, 0, i));
+                        return leftOperands.flatMap(leftOperand ->
+                            {
+                                Combiner[] combiners = combiners(leftOperand)
+                                        .toArray(Combiner[]::new);
+                                Stream<Expression> rightOperands = expressions(
+                                        ArrayUtils.subarray(permutation, i, permutation.length));
+                                return rightOperands.flatMap(rightOperand -> Stream.of(combiners)
+                                        .map(c -> c.apply(rightOperand))
+                                        .filter(Objects::nonNull));
+                            });
+                    })
+                .filter(usedChecker().negate());
     }
 
     private BinaryOperator<Expression> evaluator(int target)
@@ -210,7 +234,8 @@ public class Solver
         public Expression(int number)
         {
             value = number;
-            numbers = IntStream.of(number).toArray();
+            numbers = IntStream.of(number)
+                    .toArray();
             priority = Priority.ATOMIC;
             toString = () -> String.format("%d", number);
         }
@@ -373,6 +398,7 @@ public class Solver
 
     private Stream<Combiner> combiners(Expression expr1)
     {
-        return combiners().map(c -> c.apply(expr1)).filter(Objects::nonNull);
+        return combiners().map(c -> c.apply(expr1))
+                .filter(Objects::nonNull);
     }
 }
