@@ -197,7 +197,7 @@ public class Solver
                                 ArrayUtils.subarray(permutation, 0, i));
                         return leftOperands.flatMap(leftOperand ->
                             {
-                                Combiner[] combiners = combiners(leftOperand)
+                                Combiner[] combiners = combinersUsing(leftOperand)
                                         .toArray(Combiner[]::new);
                                 Stream<Expression> rightOperands = expressions(
                                         ArrayUtils.subarray(permutation, i, permutation.length));
@@ -270,44 +270,6 @@ public class Solver
         public int differenceFrom(int number)
         {
             return Math.abs(number - value);
-        }
-
-        @Override
-        public int hashCode()
-        {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + Arrays.hashCode(numbers);
-            result = prime * result + priority;
-            result = prime * result + ((toString == null) ? 0 : toString.hashCode());
-            result = prime * result + value;
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj)
-        {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            Expression other = (Expression) obj;
-            if (!Arrays.equals(numbers, other.numbers))
-                return false;
-            if (priority != other.priority)
-                return false;
-            if (toString == null)
-            {
-                if (other.toString != null)
-                    return false;
-            }
-            else if (!toString.equals(other.toString))
-                return false;
-            if (value != other.value)
-                return false;
-            return true;
         }
     }
 
@@ -396,7 +358,7 @@ public class Solver
                 Solver::divideCombiner);
     }
 
-    private Stream<Combiner> combiners(Expression expr1)
+    private Stream<Combiner> combinersUsing(Expression expr1)
     {
         return combiners().map(c -> c.apply(expr1))
                 .filter(Objects::nonNull);
