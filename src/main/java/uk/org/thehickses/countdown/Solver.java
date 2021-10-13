@@ -30,9 +30,8 @@ public class Solver
     {
         try
         {
-            LOG
-                    .info("Invoked with argument(s): {}",
-                            Stream.of(args).collect(Collectors.joining(" ")));
+            LOG.info("Invoked with argument(s): {}",
+                    Stream.of(args).collect(Collectors.joining(" ")));
             Solver solver = instance(args);
             solver.solve();
         }
@@ -48,10 +47,7 @@ public class Solver
         Solver answer;
         if (args.length == 0)
             throw new RuntimeException("At least one argument must be specified");
-        int[] nums = Stream
-                .of(args)
-                .peek(Solver::validateArg)
-                .mapToInt(Integer::parseInt)
+        int[] nums = Stream.of(args).peek(Solver::validateArg).mapToInt(Integer::parseInt)
                 .toArray();
         if (nums.length == 1)
             answer = instance(nums[0]);
@@ -63,9 +59,8 @@ public class Solver
     private static void validateArg(String arg)
     {
         if (!arg.matches("\\d+"))
-            throw new RuntimeException(String
-                    .format("Invalid argument %s: all arguments must be non-negative integers",
-                            arg));
+            throw new RuntimeException(String.format(
+                    "Invalid argument %s: all arguments must be non-negative integers", arg));
     }
 
     private static Solver instance(int bigNumbers)
@@ -73,7 +68,8 @@ public class Solver
         if (bigNumbers > 4)
             throw new RuntimeException(
                     "Number of large numbers must be in the range 0 to 4 inclusive");
-        LOG.info("Randomly selecting target number, and 6 source numbers of which {} are large", bigNumbers);
+        LOG.info("Randomly selecting target number, and 6 source numbers of which {} are large",
+                bigNumbers);
         Random rand = new Random();
         int target = rand.nextInt(900) + 100;
         int[] numbers = selectRandomNumbers(rand, bigNumbers);
@@ -86,16 +82,10 @@ public class Solver
         if (target < 100 || target > 999)
             throw new RuntimeException("Target number must be in the range 100 to 999 inclusive");
         int[] numbers = ArrayUtils.subarray(nums, 1, nums.length);
-        IntStream
-                .of(numbers)
-                .peek(Solver::validateValue)
-                .boxed()
-                .collect(Collectors
-                        .groupingBy(Function.identity(),
-                                Collectors.reducing(0, e -> 1, Integer::sum)))
-                .entrySet()
-                .stream()
-                .forEach(Solver::validateCount);
+        IntStream.of(numbers).peek(Solver::validateValue).boxed()
+                .collect(Collectors.groupingBy(Function.identity(),
+                        Collectors.reducing(0, e -> 1, Integer::sum)))
+                .entrySet().stream().forEach(Solver::validateCount);
         return new Solver(target, numbers);
     }
 
@@ -121,21 +111,12 @@ public class Solver
 
     private static int[] selectRandomNumbers(Random rand, int largeCount)
     {
-        List<Integer> large = IntStream
-                .rangeClosed(1, 4)
-                .map(i -> i * 25)
-                .boxed()
+        List<Integer> large = IntStream.rangeClosed(1, 4).map(i -> i * 25).boxed()
                 .collect(Collectors.toList());
-        List<Integer> small = IntStream
-                .rangeClosed(1, 10)
-                .boxed()
-                .flatMap(i -> Stream.of(i, i))
+        List<Integer> small = IntStream.rangeClosed(1, 10).boxed().flatMap(i -> Stream.of(i, i))
                 .collect(Collectors.toList());
-        return IntStream
-                .range(0, 6)
-                .mapToObj(i -> i < largeCount ? large : small)
-                .mapToInt(numbers -> numbers.remove(rand.nextInt(numbers.size())))
-                .toArray();
+        return IntStream.range(0, 6).mapToObj(i -> i < largeCount ? large : small)
+                .mapToInt(numbers -> numbers.remove(rand.nextInt(numbers.size()))).toArray();
     }
 
     private final int target;
@@ -151,10 +132,8 @@ public class Solver
     {
         LOG.info("-------------------------------------------------------------------");
         LOG.info("Target: {}, numbers: {}", target, Arrays.toString(numbers));
-        Expression answer = permute(IntStream.of(numbers).mapToObj(Expression::new))
-                .parallel()
-                .flatMap(this::expressions)
-                .filter(e -> e.differenceFrom(target) <= 10)
+        Expression answer = permute(IntStream.of(numbers).mapToObj(Expression::new)).parallel()
+                .flatMap(this::expressions).filter(e -> e.differenceFrom(target) <= 10)
                 .reduce(null, evaluator(target));
         if (answer == null)
             LOG.info("No solution found");
@@ -170,19 +149,13 @@ public class Solver
         if (items.length == 1)
             return Stream.generate(() -> items).limit(1);
         Predicate<Expression> used = usedChecker();
-        return IntStream
-                .range(0, items.length)
-                .filter(i -> !used.test(items[i]))
-                .boxed()
+        return IntStream.range(0, items.length).filter(i -> !used.test(items[i])).boxed()
                 .flatMap(i ->
                     {
-                        Stream<Expression> others = IntStream
-                                .range(0, items.length)
-                                .filter(j -> j != i)
-                                .mapToObj(j -> items[j]);
-                        Stream<Expression[]> suffixes = Stream
-                                .concat(Stream.generate(() -> new Expression[0]).limit(1),
-                                        permute(others));
+                        Stream<Expression> others = IntStream.range(0, items.length)
+                                .filter(j -> j != i).mapToObj(j -> items[j]);
+                        Stream<Expression[]> suffixes = Stream.concat(
+                                Stream.generate(() -> new Expression[0]).limit(1), permute(others));
                         return suffixes.map(s -> ArrayUtils.addFirst(s, items[i]));
                     });
     }
@@ -206,11 +179,8 @@ public class Solver
                         Combiner[] combiners = combiners(leftOperand).toArray(Combiner[]::new);
                         Stream<Expression> rightOperands = expressions(
                                 ArrayUtils.subarray(permutation, i, permutation.length));
-                        return rightOperands
-                                .flatMap(rightOperand -> Stream
-                                        .of(combiners)
-                                        .map(c -> c.apply(rightOperand))
-                                        .filter(Objects::nonNull));
+                        return rightOperands.flatMap(rightOperand -> Stream.of(combiners)
+                                .map(c -> c.apply(rightOperand)).filter(Objects::nonNull));
                     });
             }).filter(usedChecker().negate());
     }
@@ -218,8 +188,7 @@ public class Solver
     private BinaryOperator<Expression> evaluator(int target)
     {
         Comparator<Expression> comp = Comparator
-                .nullsLast(Comparator
-                        .comparingInt((Expression e) -> e.differenceFrom(target))
+                .nullsLast(Comparator.comparingInt((Expression e) -> e.differenceFrom(target))
                         .thenComparingInt(e -> e.numbers.length));
         return (expr1, expr2) -> comp.compare(expr1, expr2) <= 0 ? expr1 : expr2;
     }
@@ -398,9 +367,8 @@ public class Solver
 
     private static Stream<CombinerCreator> combiners()
     {
-        return Stream
-                .of(Solver::addCombiner, Solver::subtractCombiner, Solver::multiplyCombiner,
-                        Solver::divideCombiner);
+        return Stream.of(Solver::addCombiner, Solver::subtractCombiner, Solver::multiplyCombiner,
+                Solver::divideCombiner);
     }
 
     private Stream<Combiner> combiners(Expression expr1)
