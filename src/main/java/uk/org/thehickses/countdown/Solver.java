@@ -122,8 +122,8 @@ public class Solver
                 .boxed()
                 .collect(Collectors.toList());
         List<Integer> small = IntStream.rangeClosed(1, 10)
+                .flatMap(i -> IntStream.of(i, i))
                 .boxed()
-                .flatMap(i -> Stream.of(i, i))
                 .collect(Collectors.toList());
         return IntStream.range(0, 6)
                 .mapToObj(i -> i < largeCount ? large : small)
