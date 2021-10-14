@@ -15,7 +15,7 @@ target number; 7 if it differs from the target number by between 1 and 5 inclusi
 5 if it differs from the target number by between 6 and 10 inclusive; and nothing if it
 differs by more than 10. However, if the two players come up with solutions that
 differ from the target number by different amounts, only the one with the closer solution
-scores points.
+scores for it.
 
 This solver finds the best possible solution that differs from the target number by 10 or less.
 One solution is regarded as being better than another if it differs from the target number by a 
@@ -47,6 +47,9 @@ of number, and the number of occurrences of each source number must also be vali
 
 If the argument list is valid, the solver is run with the specified numbers if there is more than one argument, 
 or with randomly-generated numbers if there is just one.
+
+The solver can also be invoked from Java code, by creating an instance of the `Solver` class with a 
+specified target number and source numbers, and calling its `solve()` method.
 
 ## Testing
 
