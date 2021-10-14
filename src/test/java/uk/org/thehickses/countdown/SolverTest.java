@@ -23,15 +23,23 @@ public class SolverTest
 
     private final TestContext context;
 
+    // NB the test context is automatically injected by the pico-container integration - a different
+    // instance for each test.
     public SolverTest(TestContext context)
     {
         this.context = context;
     }
 
-    @ParameterType("\\d+(?:[\\s,]+\\d+)*")
+    // This method defines a custom parameter type called "ints" (the name of the method), which can then be used in a
+    // Cucumber expression to match a part of a Gherkin step, and be automatically converted by calling the method. The
+    // "ints" type matches any substring that consists entirely of a list of non-negative integers, separated by commas
+    // and/or whitespace, and converts that substring to an array of int.
+    @ParameterType("\\d[\\s,\\d]*\\d")
     public int[] ints(String str)
     {
-        return Stream.of(str.split("\\D+")).mapToInt(Integer::parseInt).toArray();
+        return Stream.of(str.split("\\D+"))
+                .mapToInt(Integer::parseInt)
+                .toArray();
     }
 
     @When("I call the solver with target number {int} and numbers {ints}")
@@ -53,18 +61,19 @@ public class SolverTest
     {
         assertThat(context.result.value).isEqualTo(value);
         assertThat(context.result.numbers.length).isEqualTo(count);
-        assertThat(IntStream.of(context.result.numbers).noneMatch(n ->
-            {
-                for (int i = 0; i < context.numbers.length; i++)
-                {
-                    if (context.numbers[i] == n)
+        assertThat(IntStream.of(context.result.numbers)
+                .noneMatch(n ->
                     {
-                        context.numbers[i] = 0;
-                        return false;
-                    }
-                }
-                return true;
-            }));
+                        for (int i = 0; i < context.numbers.length; i++)
+                        {
+                            if (context.numbers[i] == n)
+                            {
+                                context.numbers[i] = 0;
+                                return false;
+                            }
+                        }
+                        return true;
+                    }));
     }
 
     @Then("no solution is found")
