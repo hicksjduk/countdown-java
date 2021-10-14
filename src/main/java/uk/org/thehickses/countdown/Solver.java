@@ -82,53 +82,15 @@ public class Solver
         if (bigNumbers > 4)
             throw new IllegalArgumentException(
                     "Number of large numbers must be in the range 0 to 4 inclusive");
-        LOG.info("Randomly selecting target number, and {} large and {} small source numbers", bigNumbers,
-                6 - bigNumbers);
+        LOG.info("Randomly selecting target number, and {} large and {} small source numbers",
+                bigNumbers, 6 - bigNumbers);
         Random rand = new Random();
         int target = rand.nextInt(900) + 100;
-        int[] numbers = selectRandomNumbers(rand, bigNumbers);
+        int[] numbers = selectRandomSourceNumbers(rand, bigNumbers);
         return new Solver(target, numbers);
     }
 
-    private static Solver instance(int[] nums)
-    {
-        int target = nums[0];
-        if (target < 100 || target > 999)
-            throw new IllegalArgumentException(
-                    "Target number must be in the range 100 to 999 inclusive");
-        int[] numbers = ArrayUtils.subarray(nums, 1, nums.length);
-        IntStream.of(numbers)
-                .peek(Solver::validateValue)
-                .boxed()
-                .collect(Collectors.groupingBy(Function.identity(),
-                        Collectors.reducing(0, e -> 1, Integer::sum)))
-                .entrySet()
-                .stream()
-                .forEach(Solver::validateCount);
-        return new Solver(target, numbers);
-    }
-
-    private static void validateValue(int n)
-    {
-        if (n < 1 || n > 100 || (n > 10 && n % 25 != 0))
-            throw new IllegalArgumentException(String
-                    .format("Invalid source number %d: must be in the range 1 to 10 inclusive, "
-                            + "or 25, 50, 75 or 100", n));
-    }
-
-    private static void validateCount(Entry<Integer, Integer> e)
-    {
-        int n = e.getKey();
-        int occ = e.getValue();
-        if (n <= 10 && occ > 2)
-            throw new IllegalArgumentException(
-                    String.format("Small source number %d cannot appear more than twice", n));
-        if (n > 10 && occ > 1)
-            throw new IllegalArgumentException(
-                    String.format("Large source number %d cannot appear more than once", n));
-    }
-
-    private static int[] selectRandomNumbers(Random rand, int largeCount)
+    private static int[] selectRandomSourceNumbers(Random rand, int largeCount)
     {
         List<Integer> large = IntStream.rangeClosed(1, 4)
                 .map(i -> i * 25)
@@ -144,6 +106,44 @@ public class Solver
                 .toArray();
     }
 
+    private static Solver instance(int[] nums)
+    {
+        int target = nums[0];
+        if (target < 100 || target > 999)
+            throw new IllegalArgumentException(
+                    "Target number must be in the range 100 to 999 inclusive");
+        int[] numbers = ArrayUtils.subarray(nums, 1, nums.length);
+        IntStream.of(numbers)
+                .peek(Solver::validateSourceNumber)
+                .boxed()
+                .collect(Collectors.groupingBy(Function.identity(),
+                        Collectors.reducing(0, e -> 1, Integer::sum)))
+                .entrySet()
+                .stream()
+                .forEach(Solver::validateSourceNumberCount);
+        return new Solver(target, numbers);
+    }
+
+    private static void validateSourceNumber(int n)
+    {
+        if (n < 1 || n > 100 || (n > 10 && n % 25 != 0))
+            throw new IllegalArgumentException(String
+                    .format("Invalid source number %d: must be in the range 1 to 10 inclusive, "
+                            + "or 25, 50, 75 or 100", n));
+    }
+
+    private static void validateSourceNumberCount(Entry<Integer, Integer> e)
+    {
+        int number = e.getKey();
+        int occurrences = e.getValue();
+        if (number <= 10 && occurrences > 2)
+            throw new IllegalArgumentException(
+                    String.format("Small source number %d cannot appear more than twice", number));
+        if (number > 10 && occurrences > 1)
+            throw new IllegalArgumentException(
+                    String.format("Large source number %d cannot appear more than once", number));
+    }
+
     private final int target;
     private final int[] numbers;
 
@@ -157,20 +157,24 @@ public class Solver
     {
         LOG.info("-------------------------------------------------------------------");
         LOG.info("Target: {}, numbers: {}", target, Arrays.toString(numbers));
-        Supplier<Expression> runner = () -> permute(IntStream.of(numbers)
-                .mapToObj(Expression::new)).parallel()
-                        .flatMap(this::expressions)
-                        .filter(e -> e.differenceFrom(target) <= 10)
-                        .reduce(null, evaluator(target));
-        TimedResult<Expression> res = new TimedResult<>(runner);
+        TimedResult<Expression> res = new TimedResult<>(this::findSolution);
         Expression answer = res.result;
         if (answer == null)
             LOG.info("No solution found");
         else
             LOG.info("Best solution is {} = {}", answer, answer.value);
-        LOG.info("Completed in {} ms", res.timeToRun);
+        LOG.info("Completed in {} ms", res.timeToRunMs);
         LOG.info("-------------------------------------------------------------------");
         return answer;
+    }
+
+    private Expression findSolution()
+    {
+        return permute(IntStream.of(numbers)
+                .mapToObj(Expression::new)).parallel()
+                        .flatMap(this::expressions)
+                        .filter(e -> e.differenceFrom(target) <= 10)
+                        .reduce(null, evaluator(target));
     }
 
     private Stream<Expression[]> permute(Stream<Expression> exprs)
@@ -217,8 +221,8 @@ public class Solver
         Stream<Expression> leftOperands = expressions(ArrayUtils.subarray(permutation, 0, i));
         Expression[] rightOperands = expressions(
                 ArrayUtils.subarray(permutation, i, permutation.length)).toArray(Expression[]::new);
-        return leftOperands.flatMap(
-                leftOperand -> expressionsUsing(leftOperand).apply(Stream.of(rightOperands)));
+        return leftOperands.map(this::expressionsUsing)
+                .flatMap(op -> op.apply(Stream.of(rightOperands)));
     }
 
     private UnaryOperator<Stream<Expression>> expressionsUsing(Expression leftOperand)
@@ -282,6 +286,7 @@ public class Solver
             return String.format(parenthesise ? "(%s)" : "%s", expr);
         }
 
+        @Override
         public String toString()
         {
             return toString.get();
@@ -378,7 +383,7 @@ public class Solver
                 Solver::divideCombiner);
     }
 
-    private Stream<Combiner> combinersUsing(Expression expr1)
+    private static Stream<Combiner> combinersUsing(Expression expr1)
     {
         return combiners().map(c -> c.apply(expr1))
                 .filter(Objects::nonNull);
@@ -387,14 +392,14 @@ public class Solver
     private static class TimedResult<T>
     {
         public final T result;
-        public final long timeToRun;
+        public final long timeToRunMs;
 
         public TimedResult(Supplier<T> process)
         {
             Instant start = Instant.now();
             this.result = process.get();
             Instant end = Instant.now();
-            this.timeToRun = end.toEpochMilli() - start.toEpochMilli();
+            this.timeToRunMs = end.toEpochMilli() - start.toEpochMilli();
         }
     }
 }
