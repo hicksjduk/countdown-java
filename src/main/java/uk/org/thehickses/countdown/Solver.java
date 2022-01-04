@@ -173,7 +173,6 @@ public class Solver
         return permute(IntStream.of(numbers)
                 .mapToObj(Expression::new)).parallel()
                         .flatMap(this::expressions)
-                        .filter(e -> e.differenceFrom(target) <= 10)
                         .reduce(null, evaluator(target));
     }
 
@@ -235,10 +234,22 @@ public class Solver
 
     private BinaryOperator<Expression> evaluator(int target)
     {
-        Comparator<Expression> comp = Comparator
-                .nullsLast(Comparator.comparingInt((Expression e) -> e.differenceFrom(target))
-                        .thenComparingInt(e -> e.numbers.length));
-        return (expr1, expr2) -> comp.compare(expr1, expr2) <= 0 ? expr1 : expr2;
+        return (expr1, expr2) -> findBetter(target, expr1, expr2);
+    }
+
+    private Expression findBetter(int target, Expression e1, Expression e2)
+    {
+        int diff1 = e1 == null ? 11 : e1.differenceFrom(target);
+        int diff2 = e2 == null ? 11 : e2.differenceFrom(target);
+        if (Math.min(diff1, diff2) > 10)
+            return null;
+        if (diff1 < diff2)
+            return e1;
+        if (diff2 < diff1)
+            return e2;
+        if (e1.numbers.length <= e2.numbers.length)
+            return e1;
+        return e2;
     }
 
     private static interface Priority
