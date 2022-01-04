@@ -2,7 +2,6 @@ package uk.org.thehickses.countdown;
 
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -237,19 +236,24 @@ public class Solver
         return (expr1, expr2) -> findBetter(target, expr1, expr2);
     }
 
-    private Expression findBetter(int target, Expression e1, Expression e2)
+    private Expression findBetter(int target, Expression expr1, Expression expr2)
     {
-        int diff1 = e1 == null ? 11 : e1.differenceFrom(target);
-        int diff2 = e2 == null ? 11 : e2.differenceFrom(target);
+        int diff1 = difference(target, expr1);
+        int diff2 = difference(target, expr2);
         if (Math.min(diff1, diff2) > 10)
             return null;
         if (diff1 < diff2)
-            return e1;
+            return expr1;
         if (diff2 < diff1)
-            return e2;
-        if (e1.numbers.length <= e2.numbers.length)
-            return e1;
-        return e2;
+            return expr2;
+        if (expr1.numbers.length <= expr2.numbers.length)
+            return expr1;
+        return expr2;
+    }
+
+    private int difference(int target, Expression expr)
+    {
+        return expr == null ? 11 : Math.abs(expr.value - target);
     }
 
     private static interface Priority
@@ -301,11 +305,6 @@ public class Solver
         public String toString()
         {
             return toString.get();
-        }
-
-        public int differenceFrom(int number)
-        {
-            return Math.abs(number - value);
         }
     }
 
