@@ -376,7 +376,7 @@ public class Solver
 
     private static Combiner divideCombiner(Expression expr1)
     {
-        if (expr1.value == 1)
+        if (expr1.value < 6)
             return null;
         return expr2 ->
             {
