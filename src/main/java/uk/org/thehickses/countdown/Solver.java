@@ -8,11 +8,13 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -238,23 +240,44 @@ public class Solver
 
     private Expression findBetter(int target, Expression expr1, Expression expr2)
     {
-        int diff1 = difference(target, expr1);
-        int diff2 = difference(target, expr2);
-        if (Math.min(diff1, diff2) > 10)
+        BinaryOperator<Expression> diff = findBetterBy(e -> difference(target, e),
+                (c1, c2) -> Math.min(c1, c2) > 10);
+        BinaryOperator<Expression> number = findBetterBy(e -> e.numbers.length);
+        BinaryOperator<Expression> parens = findBetterBy(e -> e.parentheses);
+        try
+        {
+            return Stream.of(diff, number, parens)
+                    .map(f -> f.apply(expr1, expr2))
+                    .filter(Objects::nonNull)
+                    .findFirst()
+                    .orElse(expr1);
+        }
+        catch (Exception ex)
+        {
             return null;
-        if (diff1 < diff2)
-            return expr1;
-        if (diff2 < diff1)
-            return expr2;
-        int numbers1 = expr1.numbers.length;
-        int numbers2 = expr2.numbers.length;
-        if (numbers1 < numbers2)
-            return expr1;
-        if (numbers1 > numbers2)
-            return expr2;
-        if (expr1.parentheses <= expr2.parentheses)
-            return expr1;
-        return expr2;
+        }
+    }
+
+    private BinaryOperator<Expression> findBetterBy(ToIntFunction<Expression> criterion)
+    {
+        return findBetterBy(criterion, null);
+    }
+
+    private BinaryOperator<Expression> findBetterBy(ToIntFunction<Expression> criterion,
+            BiFunction<Integer, Integer, Boolean> criteriaInvalid)
+    {
+        return (e1, e2) ->
+            {
+                int c1 = criterion.applyAsInt(e1);
+                int c2 = criterion.applyAsInt(e2);
+                if (criteriaInvalid != null && criteriaInvalid.apply(c1, c2))
+                    throw new RuntimeException();
+                if (c1 < c2)
+                    return e1;
+                if (c1 > c2)
+                    return e2;
+                return null;
+            };
     }
 
     private int difference(int target, Expression expr)
