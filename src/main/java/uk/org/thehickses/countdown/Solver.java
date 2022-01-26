@@ -246,7 +246,13 @@ public class Solver
             return expr1;
         if (diff2 < diff1)
             return expr2;
-        if (expr1.numbers.length <= expr2.numbers.length)
+        int numbers1 = expr1.numbers.length;
+        int numbers2 = expr2.numbers.length;
+        if (numbers1 < numbers2)
+            return expr1;
+        if (numbers1 > numbers2)
+            return expr2;
+        if (expr1.parentheses <= expr2.parentheses)
             return expr1;
         return expr2;
     }
@@ -268,6 +274,7 @@ public class Solver
         public final int value;
         public final int[] numbers;
         private final int priority;
+        private final int parentheses;
         private final Supplier<String> toString;
 
         public Expression(int number)
@@ -276,6 +283,7 @@ public class Solver
             numbers = IntStream.of(number)
                     .toArray();
             priority = Priority.ATOMIC;
+            parentheses = 0;
             toString = () -> String.format("%d", number);
         }
 
@@ -286,13 +294,15 @@ public class Solver
                     .concat(IntStream.of(leftOperand.numbers), IntStream.of(rightOperand.numbers))
                     .toArray();
             priority = operator.priority;
+            boolean parenthesiseLeft = leftOperand.priority < operator.priority;
+            boolean parenthesiseRight = rightOperand.priority < operator.priority
+                    || (rightOperand.priority == operator.priority && !operator.commutative);
+            parentheses = (int) (Stream.of(parenthesiseLeft, parenthesiseRight)
+                    .filter(Boolean::booleanValue)
+                    .count()) + leftOperand.parentheses + rightOperand.parentheses;
             toString = () -> Stream
-                    .of(parenthesisedIfNecessary(leftOperand,
-                            leftOperand.priority < operator.priority), operator.symbol,
-                            parenthesisedIfNecessary(rightOperand,
-                                    rightOperand.priority < operator.priority
-                                            || (rightOperand.priority == operator.priority
-                                                    && !operator.commutative)))
+                    .of(parenthesisedIfNecessary(leftOperand, parenthesiseLeft), operator.symbol,
+                            parenthesisedIfNecessary(rightOperand, parenthesiseRight))
                     .collect(Collectors.joining(" "));
         }
 
