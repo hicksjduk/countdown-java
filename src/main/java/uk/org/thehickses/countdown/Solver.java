@@ -8,7 +8,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
@@ -264,13 +264,13 @@ public class Solver
     }
 
     private BinaryOperator<Expression> findBetterBy(ToIntFunction<Expression> criterion,
-            BiFunction<Integer, Integer, Boolean> criteriaInvalid)
+            BiPredicate<Integer, Integer> criteriaInvalid)
     {
         return (e1, e2) ->
             {
                 int c1 = criterion.applyAsInt(e1);
                 int c2 = criterion.applyAsInt(e2);
-                if (criteriaInvalid != null && criteriaInvalid.apply(c1, c2))
+                if (criteriaInvalid != null && criteriaInvalid.test(c1, c2))
                     throw new RuntimeException();
                 if (c1 < c2)
                     return e1;
