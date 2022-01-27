@@ -4,13 +4,14 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import freemarker.template.Template;
@@ -35,7 +36,9 @@ public class Controller
         {
             Solver solver = Solver.instance(args);
             model.addMessage(String.format("Target: %d, numbers: %s", solver.getTarget(),
-                    Arrays.toString(solver.getNumbers())));
+                    IntStream.of(solver.getNumbers())
+                            .mapToObj(String::valueOf)
+                            .collect(Collectors.joining(", "))));
             Expression solution = solver.solve();
             if (solution == null)
                 model.addMessage("No solution found");

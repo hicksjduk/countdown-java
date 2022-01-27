@@ -222,8 +222,7 @@ public class Solver
             return Stream.of(permutation);
         return IntStream.range(1, permutation.length)
                 .boxed()
-                .flatMap(i -> expressionsAt(i, permutation))
-                .filter(usedChecker().negate());
+                .flatMap(i -> expressionsAt(i, permutation));
     }
 
     private Stream<Expression> expressionsAt(int i, Expression[] permutation)
