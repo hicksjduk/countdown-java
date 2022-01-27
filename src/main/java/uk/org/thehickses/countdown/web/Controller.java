@@ -4,9 +4,11 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.IntStream;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,10 +30,12 @@ public class Controller
     public String home(HttpServletRequest req) throws Exception
     {
         Model model = new Model();
-        String numbers = req.getParameter("numbers");
+        String[] args = IntStream.range(0, 7)
+                .mapToObj(i -> req.getParameter("num" + i))
+                .filter(StringUtils::isNotEmpty)
+                .toArray(String[]::new);
         try
         {
-            String[] args = numbers.matches("\\s*") ? new String[0] : numbers.split("\\s+");
             Solver solver = Solver.instance(args);
             model.addMessage(String.format("Target: %d, numbers: %s", solver.getTarget(),
                     Arrays.toString(solver.getNumbers())));
@@ -44,7 +48,7 @@ public class Controller
         }
         catch (IllegalArgumentException ex)
         {
-            model.setInput(numbers)
+            model.setInput(args)
                     .addMessage(ex.getMessage());
             return outputPage(model);
         }
@@ -67,7 +71,7 @@ public class Controller
 
     public static class Model
     {
-        private String input;
+        private String[] input;
         private final List<String> messages = new ArrayList<>();
 
         public List<String> getMessages()
@@ -75,12 +79,12 @@ public class Controller
             return messages;
         }
 
-        public String getInput()
+        public String[] getInput()
         {
             return input;
         }
 
-        public Model setInput(String input)
+        public Model setInput(String[] input)
         {
             this.input = input;
             return this;
