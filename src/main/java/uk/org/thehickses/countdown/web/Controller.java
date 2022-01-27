@@ -20,16 +20,13 @@ import uk.org.thehickses.countdown.Solver.Expression;
 @RestController
 public class Controller
 {
-    @RequestMapping(path = "/", method = RequestMethod.GET)
-    public String home() throws Exception
-    {
-        return outputPage(new Model());
-    }
-
-    @RequestMapping(path = "/", method = RequestMethod.POST)
+    @RequestMapping(path = "/")
     public String home(HttpServletRequest req) throws Exception
     {
         Model model = new Model();
+        if (!req.getParameterNames()
+                .hasMoreElements())
+            return outputPage(model);
         String[] args = IntStream.range(0, 7)
                 .mapToObj(i -> req.getParameter("num" + i))
                 .filter(StringUtils::isNotEmpty)
