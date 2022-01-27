@@ -5,9 +5,9 @@
 <body>
 <form action="/" method="post">
 <#list 0..6 as n>
-<input name="num${n}" type="number" size=3 value="${(input![])[n]!""}"/>
+<input name="num${n}" type="number" style="width: 12%" value="${(input![])[n]!""}"/>
 </#list>
-<input type="submit" value="OK"/>
+<p><input type="submit" value="OK"/>
 </form>
 <b>
 <#list messages as msg>
