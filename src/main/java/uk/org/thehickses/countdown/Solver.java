@@ -58,7 +58,7 @@ public class Solver
         }
     }
 
-    private static Solver instance(String[] args)
+    public static Solver instance(String[] args)
     {
         if (args.length == 0)
             throw new IllegalArgumentException("At least one argument must be specified");
@@ -78,7 +78,7 @@ public class Solver
                     "Invalid argument %s: all arguments must be non-negative integers", arg));
     }
 
-    private static Solver instance(int bigNumbers)
+    public static Solver instance(int bigNumbers)
     {
         if (bigNumbers > 4)
             throw new IllegalArgumentException(
@@ -107,7 +107,7 @@ public class Solver
                 .toArray();
     }
 
-    private static Solver instance(int[] nums)
+    public static Solver instance(int[] nums)
     {
         int target = nums[0];
         if (target < 100 || target > 999)
@@ -152,6 +152,16 @@ public class Solver
     {
         this.target = target;
         this.numbers = numbers;
+    }
+
+    public int getTarget()
+    {
+        return target;
+    }
+
+    public int[] getNumbers()
+    {
+        return numbers;
     }
 
     public Expression solve()
