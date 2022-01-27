@@ -96,6 +96,7 @@
 		</dependency>
 	</dependencies>
 
+<!-- 
 	<build>
 		<pluginManagement>
 			<plugins>
@@ -104,7 +105,7 @@
 					<artifactId>exec-maven-plugin</artifactId>
 					<version>3.0.0</version>
 					<configuration>
-						<mainClass>uk.org.thehickses.countdown.Solver</mainClass>
+						<mainClass>uk.org.thehickses.countdown.web.Application</mainClass>
 					</configuration>
 				</plugin>
 				<plugin>
@@ -185,4 +186,5 @@
 			</plugin>
 		</plugins>
 	</reporting>
-</project>
+ -->
+ </project>
