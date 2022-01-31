@@ -2,19 +2,18 @@ package uk.org.thehickses.countdown;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
-import java.util.function.BiPredicate;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
-import java.util.function.ToIntFunction;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -184,7 +183,7 @@ public class Solver
         return permute(IntStream.of(numbers)
                 .mapToObj(Expression::new)).parallel()
                         .flatMap(this::expressions)
-                        .reduce(null, evaluator(target));
+                        .reduce(null, evaluator());
     }
 
     private Stream<Expression[]> permute(Stream<Expression> exprs)
@@ -242,50 +241,27 @@ public class Solver
                 .filter(Objects::nonNull));
     }
 
-    private BinaryOperator<Expression> evaluator(int target)
+    private BinaryOperator<Expression> evaluator()
     {
-        return (expr1, expr2) -> findBetter(target, expr1, expr2);
-    }
-
-    private Expression findBetter(int target, Expression expr1, Expression expr2)
-    {
-        BinaryOperator<Expression> diff = findBetterBy(e -> difference(target, e),
-                (c1, c2) -> Math.min(c1, c2) > 10);
-        BinaryOperator<Expression> number = findBetterBy(e -> e.numbers.length);
-        BinaryOperator<Expression> parens = findBetterBy(e -> e.parentheses);
-        try
-        {
-            return Stream.of(diff, number, parens)
-                    .map(f -> f.apply(expr1, expr2))
-                    .filter(Objects::nonNull)
-                    .findFirst()
-                    .orElse(expr1);
-        }
-        catch (Exception ex)
-        {
-            return null;
-        }
-    }
-
-    private BinaryOperator<Expression> findBetterBy(ToIntFunction<Expression> criterion)
-    {
-        return findBetterBy(criterion, null);
-    }
-
-    private BinaryOperator<Expression> findBetterBy(ToIntFunction<Expression> criterion,
-            BiPredicate<Integer, Integer> criteriaInvalid)
-    {
+        Comparator<Expression> comp = Comparator
+                .comparing((Expression e) -> difference(target, e), (d1, d2) ->
+                    {
+                        if (Math.min(d1, d2) > 10)
+                            throw new RuntimeException();
+                        return Integer.compare(d1, d2);
+                    })
+                .thenComparingInt(e -> e.numbers.length)
+                .thenComparingInt(e -> e.parentheses);
         return (e1, e2) ->
             {
-                int c1 = criterion.applyAsInt(e1);
-                int c2 = criterion.applyAsInt(e2);
-                if (criteriaInvalid != null && criteriaInvalid.test(c1, c2))
-                    throw new RuntimeException();
-                if (c1 < c2)
-                    return e1;
-                if (c1 > c2)
-                    return e2;
-                return null;
+                try
+                {
+                    return comp.compare(e1, e2) <= 0 ? e1 : e2;
+                }
+                catch (Exception ex)
+                {
+                    return null;
+                }
             };
     }
 
