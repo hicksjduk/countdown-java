@@ -1,26 +1,26 @@
 package uk.org.thehickses.countdown.web;
 
-import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import freemarker.template.Template;
 import uk.org.thehickses.countdown.Solver;
 import uk.org.thehickses.countdown.Solver.Expression;
 
 @RestController
 public class Controller
 {
+    @Autowired
+    Templater templater;
+    
     @RequestMapping(path = "/")
     public String home(HttpServletRequest req) throws Exception
     {
@@ -56,17 +56,7 @@ public class Controller
 
     private String outputPage(Model model) throws Exception
     {
-        try (StringWriter sw = new StringWriter())
-        {
-            template("index.ftlh").process(model, sw);
-            return sw.toString();
-        }
-    }
-
-    private Template template(String file) throws Exception
-    {
-        return TemplateConfig.getConfiguration()
-                .getTemplate(file);
+        return templater.applyTemplate("index.ftlh", model);
     }
 
     public static class Model
