@@ -181,9 +181,9 @@ public class Solver
     private Expression findSolution()
     {
         return permute(IntStream.of(numbers)
-                .mapToObj(Expression::new)).parallel()
+                .mapToObj(n -> new Expression(n, target))).parallel()
                         .flatMap(this::expressions)
-                        .filter(e -> difference(target, e) <= 10)
+                        .filter(e -> e.difference <= 10)
                         .reduce(evaluator())
                         .orElse(null);
     }
@@ -246,15 +246,10 @@ public class Solver
     private BinaryOperator<Expression> evaluator()
     {
         Comparator<Expression> comp = Comparator
-                .comparingInt((Expression e) -> difference(target, e))
+                .comparingInt((Expression e) -> e.difference)
                 .thenComparingInt(e -> e.numbers.length)
                 .thenComparingInt(e -> e.parentheses);
         return (e1, e2) -> comp.compare(e1, e2) <= 0 ? e1 : e2;
-    }
-
-    private int difference(int target, Expression expr)
-    {
-        return Math.abs(expr.value - target);
     }
 
     private static interface Priority
@@ -267,14 +262,16 @@ public class Solver
     public static class Expression
     {
         public final int value;
+        public final int difference;
         public final int[] numbers;
         private final int priority;
         private final int parentheses;
         private final Supplier<String> toString;
 
-        public Expression(int number)
+        public Expression(int number, int target)
         {
             value = number;
+            difference = Math.abs(target - value);
             numbers = IntStream.of(number)
                     .toArray();
             priority = Priority.ATOMIC;
@@ -282,9 +279,10 @@ public class Solver
             toString = () -> String.format("%d", number);
         }
 
-        public Expression(Expression leftOperand, Operator operator, Expression rightOperand)
+        public Expression(Expression leftOperand, Operator operator, Expression rightOperand, int target)
         {
             value = operator.evaluate(leftOperand, rightOperand);
+            difference = Math.abs(target - value);
             numbers = IntStream
                     .concat(IntStream.of(leftOperand.numbers), IntStream.of(rightOperand.numbers))
                     .toArray();
@@ -341,21 +339,21 @@ public class Solver
     }
 
     @FunctionalInterface
-    private static interface Combiner extends UnaryOperator<Expression>
+    private interface Combiner extends UnaryOperator<Expression>
     {
     }
 
     @FunctionalInterface
-    private static interface CombinerCreator extends Function<Expression, Combiner>
+    private interface CombinerCreator extends Function<Expression, Combiner>
     {
     }
 
-    private static Combiner addCombiner(Expression expr1)
+    private Combiner addCombiner(Expression expr1)
     {
-        return expr2 -> new Expression(expr1, Operator.ADD, expr2);
+        return expr2 -> new Expression(expr1, Operator.ADD, expr2, target);
     }
 
-    private static Combiner subtractCombiner(Expression expr1)
+    private Combiner subtractCombiner(Expression expr1)
     {
         if (expr1.value < 3)
             return null;
@@ -363,11 +361,11 @@ public class Solver
             {
                 if (expr1.value <= expr2.value || expr1.value == expr2.value * 2)
                     return null;
-                return new Expression(expr1, Operator.SUBTRACT, expr2);
+                return new Expression(expr1, Operator.SUBTRACT, expr2, target);
             };
     }
 
-    private static Combiner multiplyCombiner(Expression expr1)
+    private Combiner multiplyCombiner(Expression expr1)
     {
         if (expr1.value == 1)
             return null;
@@ -375,11 +373,11 @@ public class Solver
             {
                 if (expr2.value == 1)
                     return null;
-                return new Expression(expr1, Operator.MULTIPLY, expr2);
+                return new Expression(expr1, Operator.MULTIPLY, expr2, target);
             };
     }
 
-    private static Combiner divideCombiner(Expression expr1)
+    private Combiner divideCombiner(Expression expr1)
     {
         if (expr1.value == 1)
             return null;
@@ -388,17 +386,17 @@ public class Solver
                 if (expr2.value == 1 || expr1.value % expr2.value != 0
                         || expr1.value == expr2.value * expr2.value)
                     return null;
-                return new Expression(expr1, Operator.DIVIDE, expr2);
+                return new Expression(expr1, Operator.DIVIDE, expr2, target);
             };
     }
 
-    private static Stream<CombinerCreator> combiners()
+    private Stream<CombinerCreator> combiners()
     {
-        return Stream.of(Solver::addCombiner, Solver::subtractCombiner, Solver::multiplyCombiner,
-                Solver::divideCombiner);
+        return Stream.of(this::addCombiner, this::subtractCombiner, this::multiplyCombiner,
+                this::divideCombiner);
     }
 
-    private static Stream<Combiner> combinersUsing(Expression expr1)
+    private Stream<Combiner> combinersUsing(Expression expr1)
     {
         return combiners().map(c -> c.apply(expr1))
                 .filter(Objects::nonNull);
