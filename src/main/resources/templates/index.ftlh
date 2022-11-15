@@ -4,7 +4,11 @@
 </head>
 <body>
 <form action="/" method="put">
-<#list 0..6 as n>
+Target: <input name="num0" type="number" style="width: 12%" value="${(input![])[0]!""}"/>
+<p>
+Source numbers:
+<br>
+<#list 1..6 as n>
 <input name="num${n}" type="number" style="width: 12%" value="${(input![])[n]!""}"/>
 </#list>
 <p><input type="submit" value="OK"/>
