@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import uk.org.thehickses.countdown.Solver;
-import uk.org.thehickses.countdown.Solver.Expression;
 
 @RestController
 public class Controller
@@ -24,22 +23,22 @@ public class Controller
     @RequestMapping(path = "/")
     public String home(HttpServletRequest req) throws Exception
     {
-        Model model = new Model();
+        var model = new Model();
         if (!req.getParameterNames()
                 .hasMoreElements())
             return outputPage(model);
-        String[] args = IntStream.range(0, 7)
+        var args = IntStream.range(0, 7)
                 .mapToObj(i -> req.getParameter("num" + i))
                 .filter(StringUtils::isNotEmpty)
                 .toArray(String[]::new);
         try
         {
-            Solver solver = Solver.instance(args);
+            var solver = Solver.instance(args);
             model.addMessage(String.format("Target: %d, numbers: %s", solver.getTarget(),
                     IntStream.of(solver.getNumbers())
                             .mapToObj(String::valueOf)
                             .collect(Collectors.joining(", "))));
-            Expression solution = solver.solve();
+            var solution = solver.solve();
             if (solution == null)
                 model.addMessage("No solution found");
             else

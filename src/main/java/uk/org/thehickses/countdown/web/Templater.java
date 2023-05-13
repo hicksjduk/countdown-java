@@ -15,7 +15,7 @@ public class Templater
 
     public String applyTemplate(String templateName, Object model) throws Exception
     {
-        StringWriter sw = new StringWriter();
+        var sw = new StringWriter();
         cfg.getTemplate(templateName)
                 .process(model, sw);
         return sw.toString();

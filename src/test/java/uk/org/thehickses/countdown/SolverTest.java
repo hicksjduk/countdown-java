@@ -70,7 +70,7 @@ public class SolverTest
 
     private Consumer<int[]> assertIsSubsetOf(int[] superset)
     {
-        Map<Integer, Integer> superOccurs = occurrenceCounts(superset);
+        var superOccurs = occurrenceCounts(superset);
         return subset -> occurrenceCounts(subset).entrySet()
                 .forEach(e -> assertThat(e.getValue())
                         .isLessThanOrEqualTo(superOccurs.getOrDefault(e.getKey(), 0)));

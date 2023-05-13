@@ -4,11 +4,9 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Random;
-import java.util.Set;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.IntBinaryOperator;
@@ -61,7 +59,7 @@ public class Solver
     {
         if (args.length == 0)
             throw new IllegalArgumentException("At least one argument must be specified");
-        int[] nums = Stream.of(args)
+        var nums = Stream.of(args)
                 .peek(Solver::validateArg)
                 .mapToInt(Integer::parseInt)
                 .toArray();
@@ -84,19 +82,19 @@ public class Solver
                     "Number of large numbers must be in the range 0 to 4 inclusive");
         LOG.info("Randomly selecting target number, and {} large and {} small source numbers",
                 bigNumbers, 6 - bigNumbers);
-        Random rand = new Random();
-        int target = rand.nextInt(900) + 100;
-        int[] numbers = selectRandomSourceNumbers(rand, bigNumbers);
+        var rand = new Random();
+        var target = rand.nextInt(900) + 100;
+        var numbers = selectRandomSourceNumbers(rand, bigNumbers);
         return new Solver(target, numbers);
     }
 
     private static int[] selectRandomSourceNumbers(Random rand, int largeCount)
     {
-        List<Integer> large = IntStream.rangeClosed(1, 4)
+        var large = IntStream.rangeClosed(1, 4)
                 .map(i -> i * 25)
                 .boxed()
                 .collect(Collectors.toList());
-        List<Integer> small = IntStream.rangeClosed(1, 10)
+        var small = IntStream.rangeClosed(1, 10)
                 .flatMap(i -> IntStream.of(i, i))
                 .boxed()
                 .collect(Collectors.toList());
@@ -108,11 +106,11 @@ public class Solver
 
     public static Solver instance(int[] nums)
     {
-        int target = nums[0];
+        var target = nums[0];
         if (target < 100 || target > 999)
             throw new IllegalArgumentException(
                     "Target number must be in the range 100 to 999 inclusive");
-        int[] numbers = ArrayUtils.subarray(nums, 1, nums.length);
+        var numbers = ArrayUtils.subarray(nums, 1, nums.length);
         IntStream.of(numbers)
                 .peek(Solver::validateSourceNumber)
                 .boxed()
@@ -134,8 +132,8 @@ public class Solver
 
     private static void validateSourceNumberCount(Entry<Integer, Integer> e)
     {
-        int number = e.getKey();
-        int occurrences = e.getValue();
+        var number = e.getKey();
+        var occurrences = e.getValue();
         if (number <= 10 && occurrences > 2)
             throw new IllegalArgumentException(
                     String.format("Small source number %d cannot appear more than twice", number));
@@ -167,8 +165,8 @@ public class Solver
     {
         LOG.info("-------------------------------------------------------------------");
         LOG.info("Target: {}, numbers: {}", target, Arrays.toString(numbers));
-        TimedResult<Expression> res = new TimedResult<>(this::findSolution);
-        Expression answer = res.result;
+        var res = new TimedResult<>(this::findSolution);
+        var answer = res.result;
         if (answer == null)
             LOG.info("No solution found");
         else
@@ -190,11 +188,11 @@ public class Solver
 
     private Stream<Expression[]> permute(Stream<Expression> exprs)
     {
-        Expression[] items = exprs.toArray(Expression[]::new);
+        var items = exprs.toArray(Expression[]::new);
         if (items.length == 1)
             return Stream.generate(() -> items)
                     .limit(1);
-        Predicate<Expression> used = usedChecker();
+        var used = usedChecker();
         return IntStream.range(0, items.length)
                 .filter(i -> !used.test(items[i]))
                 .boxed()
@@ -203,17 +201,17 @@ public class Solver
 
     private Stream<Expression[]> permuteAt(int i, Expression[] items)
     {
-        Stream<Expression> others = IntStream.range(0, items.length)
+        var others = IntStream.range(0, items.length)
                 .filter(j -> j != i)
                 .mapToObj(j -> items[j]);
-        Stream<Expression[]> suffixes = Stream.concat(Stream.generate(() -> new Expression[0])
+        var suffixes = Stream.concat(Stream.generate(() -> new Expression[0])
                 .limit(1), permute(others));
         return suffixes.map(s -> ArrayUtils.addFirst(s, items[i]));
     }
 
     private Predicate<Expression> usedChecker()
     {
-        Set<Integer> usedValues = new HashSet<>();
+        var usedValues = new HashSet<>();
         return value -> !usedValues.add(value.value);
     }
 
@@ -228,16 +226,16 @@ public class Solver
 
     private Stream<Expression> expressionsAt(int i, Expression[] permutation)
     {
-        Stream<Expression> leftOperands = expressions(ArrayUtils.subarray(permutation, 0, i));
-        Expression[] rightOperands = expressions(
-                ArrayUtils.subarray(permutation, i, permutation.length)).toArray(Expression[]::new);
+        var leftOperands = expressions(ArrayUtils.subarray(permutation, 0, i));
+        var rightOperands = expressions(ArrayUtils.subarray(permutation, i, permutation.length))
+                .toArray(Expression[]::new);
         return leftOperands.map(this::expressionsUsing)
                 .flatMap(op -> op.apply(Stream.of(rightOperands)));
     }
 
     private UnaryOperator<Stream<Expression>> expressionsUsing(Expression leftOperand)
     {
-        Combiner[] combiners = combinersUsing(leftOperand).toArray(Combiner[]::new);
+        var combiners = combinersUsing(leftOperand).toArray(Combiner[]::new);
         return rightOperands -> rightOperands.flatMap(rightOperand -> Stream.of(combiners)
                 .map(c -> c.apply(rightOperand))
                 .filter(Objects::nonNull));
@@ -245,8 +243,7 @@ public class Solver
 
     private BinaryOperator<Expression> evaluator()
     {
-        Comparator<Expression> comp = Comparator
-                .comparingInt((Expression e) -> e.difference)
+        var comp = Comparator.comparingInt((Expression e) -> e.difference)
                 .thenComparingInt(e -> e.numbers.length)
                 .thenComparingInt(e -> e.parentheses);
         return (e1, e2) -> comp.compare(e1, e2) <= 0 ? e1 : e2;
@@ -279,7 +276,8 @@ public class Solver
             toString = () -> String.format("%d", number);
         }
 
-        public Expression(Expression leftOperand, Operator operator, Expression rightOperand, int target)
+        public Expression(Expression leftOperand, Operator operator, Expression rightOperand,
+                int target)
         {
             value = operator.evaluate(leftOperand, rightOperand);
             difference = Math.abs(target - value);
@@ -287,8 +285,8 @@ public class Solver
                     .concat(IntStream.of(leftOperand.numbers), IntStream.of(rightOperand.numbers))
                     .toArray();
             priority = operator.priority;
-            boolean parenthesiseLeft = leftOperand.priority < operator.priority;
-            boolean parenthesiseRight = rightOperand.priority < operator.priority
+            var parenthesiseLeft = leftOperand.priority < operator.priority;
+            var parenthesiseRight = rightOperand.priority < operator.priority
                     || (rightOperand.priority == operator.priority && !operator.commutative);
             parentheses = (int) (Stream.of(parenthesiseLeft, parenthesiseRight)
                     .filter(Boolean::booleanValue)
@@ -409,9 +407,9 @@ public class Solver
 
         public TimedResult(Supplier<T> process)
         {
-            Instant start = Instant.now();
+            var start = Instant.now();
             this.result = process.get();
-            Instant end = Instant.now();
+            var end = Instant.now();
             this.timeToRunMs = end.toEpochMilli() - start.toEpochMilli();
         }
     }
