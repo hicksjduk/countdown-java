@@ -2,6 +2,10 @@ package uk.org.thehickses.countdown;
 
 import static org.assertj.core.api.Assertions.*;
 
+import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -61,19 +65,23 @@ public class SolverTest
     {
         assertThat(context.result.value).isEqualTo(value);
         assertThat(context.result.numbers.length).isEqualTo(count);
-        assertThat(IntStream.of(context.result.numbers)
-                .noneMatch(n ->
-                    {
-                        for (int i = 0; i < context.numbers.length; i++)
-                        {
-                            if (context.numbers[i] == n)
-                            {
-                                context.numbers[i] = 0;
-                                return false;
-                            }
-                        }
-                        return true;
-                    }));
+        assertIsSubsetOf(context.numbers).accept(context.result.numbers);
+    }
+
+    private Consumer<int[]> assertIsSubsetOf(int[] superset)
+    {
+        Map<Integer, Integer> superOccurs = occurrenceCounts(superset);
+        return subset -> occurrenceCounts(subset).entrySet()
+                .forEach(e -> assertThat(e.getValue())
+                        .isLessThanOrEqualTo(superOccurs.getOrDefault(e.getKey(), 0)));
+    }
+
+    private Map<Integer, Integer> occurrenceCounts(int[] arr)
+    {
+        return IntStream.of(arr)
+                .boxed()
+                .collect(Collectors.groupingBy(Function.identity(),
+                        Collectors.reducing(0, e -> 1, Integer::sum)));
     }
 
     @Then("no solution is found")
